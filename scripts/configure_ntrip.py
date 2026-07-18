@@ -9,6 +9,26 @@ from tkinter import messagebox, scrolledtext, ttk
 
 import yaml
 
+# Try to import rclpy. If it fails, re-execute under sourced bash.
+try:
+    import rclpy  # noqa: F401
+except ImportError:
+
+    if os.environ.get('ROS_GUI_REEXEC') != '1':
+        os.environ['ROS_GUI_REEXEC'] = '1'
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        ws_dir = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
+        ws_setup = os.path.join(ws_dir, 'install', 'setup.bash')
+        import shlex
+        args = ' '.join(shlex.quote(arg) for arg in sys.argv)
+        cmd = (
+            f'source /opt/ros/jazzy/setup.bash && '
+            f'if [ -f {ws_setup} ]; then source {ws_setup}; fi && '
+            f'export FASTRTPS_DEFAULT_PROFILES_FILE={ws_dir}/fastdds_no_shm.xml && '
+            f'python3 {args}'
+        )
+        os.execv('/bin/bash', ['/bin/bash', '-c', cmd])
+
 
 def load_ntrip_settings(config_path):
     with open(config_path, 'r') as f:
@@ -197,7 +217,9 @@ class NTRIPConfigurator(tk.Tk):
         self.save_btn.pack(side=tk.LEFT, padx=(0, 10))
 
         # Live Stream Status Indicator Frame
-        status_frame = ttk.LabelFrame(main_frame, text='Live Topic Streams', padding='10 10 10 10')
+        status_frame = ttk.LabelFrame(
+            main_frame, text='Live Topic Streams', padding='10 10 10 10'
+        )
         status_frame.grid(
             row=len(fields)+4, column=0, columnspan=2, pady=(5, 15), sticky='ew'
         )
@@ -206,7 +228,9 @@ class NTRIPConfigurator(tk.Tk):
         self.imu_dot = tk.Frame(status_frame, width=12, height=12, bg='#f38ba8')
         self.imu_dot.grid(row=0, column=0, padx=(5, 5), pady=5)
         self.imu_dot.grid_propagate(False)
-        imu_lbl = ttk.Label(status_frame, text='IMU Stream (/imu/data):', font=('Helvetica', 9))
+        imu_lbl = ttk.Label(
+            status_frame, text='IMU Stream (/imu/data):', font=('Helvetica', 9)
+        )
         imu_lbl.grid(row=0, column=1, sticky='w', pady=5)
         self.imu_status_label = ttk.Label(
             status_frame, text='INACTIVE', foreground='#f38ba8',
@@ -218,7 +242,9 @@ class NTRIPConfigurator(tk.Tk):
         self.nmea_dot = tk.Frame(status_frame, width=12, height=12, bg='#f38ba8')
         self.nmea_dot.grid(row=0, column=3, padx=(5, 5), pady=5)
         self.nmea_dot.grid_propagate(False)
-        nmea_lbl = ttk.Label(status_frame, text='NMEA Output (/nmea):', font=('Helvetica', 9))
+        nmea_lbl = ttk.Label(
+            status_frame, text='NMEA Output (/nmea):', font=('Helvetica', 9)
+        )
         nmea_lbl.grid(row=0, column=4, sticky='w', pady=5)
         self.nmea_status_label = ttk.Label(
             status_frame, text='INACTIVE', foreground='#f38ba8',
@@ -230,7 +256,9 @@ class NTRIPConfigurator(tk.Tk):
         self.rtcm_dot = tk.Frame(status_frame, width=12, height=12, bg='#f38ba8')
         self.rtcm_dot.grid(row=0, column=6, padx=(5, 5), pady=5)
         self.rtcm_dot.grid_propagate(False)
-        rtcm_lbl = ttk.Label(status_frame, text='RTK Corrections (/rtcm):', font=('Helvetica', 9))
+        rtcm_lbl = ttk.Label(
+            status_frame, text='RTK Corrections (/rtcm):', font=('Helvetica', 9)
+        )
         rtcm_lbl.grid(row=0, column=7, sticky='w', pady=5)
         self.rtcm_status_label = ttk.Label(
             status_frame, text='INACTIVE', foreground='#f38ba8',
@@ -371,24 +399,25 @@ class NTRIPConfigurator(tk.Tk):
 
     def _run_ros2_monitor(self):
         try:
-            import rclpy
+            import rclpy  # noqa: F811
             from rclpy.node import Node
 
             # Import messages dynamically to prevent imports failure if not in workspace
+
             try:
                 from sensor_msgs.msg import Imu
             except ImportError:
                 Imu = None
 
             try:
-                from microstrain_inertial_msgs.msg import Nmea
+                from nmea_msgs.msg import Sentence
             except ImportError:
-                Nmea = None
+                Sentence = None
 
             try:
-                from rtcm_msgs.msg import Rtcm
+                from rtcm_msgs.msg import Message
             except ImportError:
-                Rtcm = None
+                Message = None
 
             if not rclpy.ok():
                 rclpy.init()
@@ -402,14 +431,14 @@ class NTRIPConfigurator(tk.Tk):
                             Imu, '/imu/data',
                             lambda msg: on_imu(), 10
                         )
-                    if Nmea is not None:
+                    if Sentence is not None:
                         self.create_subscription(
-                            Nmea, '/nmea',
+                            Sentence, '/nmea',
                             lambda msg: on_nmea(), 10
                         )
-                    if Rtcm is not None:
+                    if Message is not None:
                         self.create_subscription(
-                            Rtcm, '/rtcm',
+                            Message, '/rtcm',
                             lambda msg: on_rtcm(), 10
                         )
 
@@ -517,9 +546,10 @@ class NTRIPConfigurator(tk.Tk):
     def _on_close(self):
         self._stop_launch()
         try:
-            import rclpy
+            import rclpy  # noqa: F811
             if rclpy.ok():
                 rclpy.shutdown()
+
         except Exception:
             pass
         self.destroy()
