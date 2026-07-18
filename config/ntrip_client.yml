@@ -1,0 +1,24 @@
+ntrip_client:
+  ros__parameters:
+    # Connection parameters for your NTRIP Caster / Correction Service
+    # (Replace these placeholders with your actual NTRIP settings)
+    host: "rtk2go.com"
+    port: "2101"
+    mountpoint: "YOUR_MOUNTPOINT"
+    authenticate: true
+    username: "YOUR_USERNAME"
+    password: "YOUR_PASSWORD"
+
+    # Message configurations
+    # "rtcm_msgs" is standard and pre-installed on this system
+    rtcm_message_package: "rtcm_msgs"
+    rtcm_frame_id: "odom"
+
+    # NMEA limits
+    nmea_max_length: 128
+    nmea_min_length: 3
+
+    # Reconnection behavior
+    reconnect_attempt_max: 10
+    reconnect_attempt_wait_seconds: 5
+    rtcm_timeout_seconds: 4
