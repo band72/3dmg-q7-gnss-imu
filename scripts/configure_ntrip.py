@@ -67,9 +67,14 @@ class NTRIPConfigurator(tk.Tk):
         self.script_dir = os.path.dirname(start_script_path)
         self.process = None
 
+        # Track timestamps of last received topic messages
+        self.last_imu_time = 0.0
+        self.last_nmea_time = 0.0
+        self.last_rtcm_time = 0.0
+
         self.title('MicroStrain Driver Settings')
-        self.geometry('700x650')
-        self.minsize(600, 550)
+        self.geometry('720x720')
+        self.minsize(650, 620)
 
         # Style configurations
         self.style = ttk.Style()
@@ -112,6 +117,13 @@ class NTRIPConfigurator(tk.Tk):
 
         self._build_ui()
         self._load_settings()
+
+        # Start ROS 2 topic monitor in a background thread
+        self.monitor_thread = threading.Thread(target=self._run_ros2_monitor, daemon=True)
+        self.monitor_thread.start()
+
+        # Start periodic GUI status indicator updates
+        self.after(500, self._update_indicators)
 
         self.protocol('WM_DELETE_WINDOW', self._on_close)
 
@@ -175,7 +187,7 @@ class NTRIPConfigurator(tk.Tk):
         # Load / Save buttons frame
         btn_frame = ttk.Frame(main_frame)
         btn_frame.grid(
-            row=len(fields)+3, column=0, columnspan=2, pady=20, sticky='ew'
+            row=len(fields)+3, column=0, columnspan=2, pady=(15, 10), sticky='ew'
         )
 
         self.save_btn = ttk.Button(
@@ -184,10 +196,52 @@ class NTRIPConfigurator(tk.Tk):
         )
         self.save_btn.pack(side=tk.LEFT, padx=(0, 10))
 
+        # Live Stream Status Indicator Frame
+        status_frame = ttk.LabelFrame(main_frame, text='Live Topic Streams', padding='10 10 10 10')
+        status_frame.grid(
+            row=len(fields)+4, column=0, columnspan=2, pady=(5, 15), sticky='ew'
+        )
+
+        # IMU Stream
+        self.imu_dot = tk.Frame(status_frame, width=12, height=12, bg='#f38ba8')
+        self.imu_dot.grid(row=0, column=0, padx=(5, 5), pady=5)
+        self.imu_dot.grid_propagate(False)
+        imu_lbl = ttk.Label(status_frame, text='IMU Stream (/imu/data):', font=('Helvetica', 9))
+        imu_lbl.grid(row=0, column=1, sticky='w', pady=5)
+        self.imu_status_label = ttk.Label(
+            status_frame, text='INACTIVE', foreground='#f38ba8',
+            font=('Helvetica', 9, 'bold')
+        )
+        self.imu_status_label.grid(row=0, column=2, sticky='w', padx=(5, 15), pady=5)
+
+        # NMEA Stream
+        self.nmea_dot = tk.Frame(status_frame, width=12, height=12, bg='#f38ba8')
+        self.nmea_dot.grid(row=0, column=3, padx=(5, 5), pady=5)
+        self.nmea_dot.grid_propagate(False)
+        nmea_lbl = ttk.Label(status_frame, text='NMEA Output (/nmea):', font=('Helvetica', 9))
+        nmea_lbl.grid(row=0, column=4, sticky='w', pady=5)
+        self.nmea_status_label = ttk.Label(
+            status_frame, text='INACTIVE', foreground='#f38ba8',
+            font=('Helvetica', 9, 'bold')
+        )
+        self.nmea_status_label.grid(row=0, column=5, sticky='w', padx=(5, 15), pady=5)
+
+        # RTK/RTCM Stream
+        self.rtcm_dot = tk.Frame(status_frame, width=12, height=12, bg='#f38ba8')
+        self.rtcm_dot.grid(row=0, column=6, padx=(5, 5), pady=5)
+        self.rtcm_dot.grid_propagate(False)
+        rtcm_lbl = ttk.Label(status_frame, text='RTK Corrections (/rtcm):', font=('Helvetica', 9))
+        rtcm_lbl.grid(row=0, column=7, sticky='w', pady=5)
+        self.rtcm_status_label = ttk.Label(
+            status_frame, text='INACTIVE', foreground='#f38ba8',
+            font=('Helvetica', 9, 'bold')
+        )
+        self.rtcm_status_label.grid(row=0, column=8, sticky='w', padx=(5, 5), pady=5)
+
         # ROS Launch control frame
         launch_frame = ttk.Frame(main_frame)
         launch_frame.grid(
-            row=len(fields)+4, column=0, columnspan=2, pady=(0, 10), sticky='ew'
+            row=len(fields)+5, column=0, columnspan=2, pady=(0, 10), sticky='ew'
         )
 
         self.run_btn = ttk.Button(
@@ -205,7 +259,7 @@ class NTRIPConfigurator(tk.Tk):
         # Scrolled Text for logs output
         log_label = ttk.Label(main_frame, text='ROS 2 Process Logs:')
         log_label.grid(
-            row=len(fields)+5, column=0, columnspan=2, sticky='w',
+            row=len(fields)+6, column=0, columnspan=2, sticky='w',
             pady=(10, 5)
         )
 
@@ -214,12 +268,12 @@ class NTRIPConfigurator(tk.Tk):
             font=('Courier New', 10)
         )
         self.log_text.grid(
-            row=len(fields)+6, column=0, columnspan=2, sticky='nsew',
+            row=len(fields)+7, column=0, columnspan=2, sticky='nsew',
             pady=(0, 10)
         )
 
         main_frame.columnconfigure(1, weight=1)
-        main_frame.rowconfigure(len(fields)+6, weight=1)
+        main_frame.rowconfigure(len(fields)+7, weight=1)
 
     def _on_device_changed(self, event=None):
         selected = self.device_var.get()
@@ -269,6 +323,104 @@ class NTRIPConfigurator(tk.Tk):
             self._stop_launch()
             # Give a brief delay for clean termination, then start launch again
             self.after(800, self._start_launch)
+
+    def _on_imu_msg(self):
+        self.last_imu_time = time.time()
+
+    def _on_nmea_msg(self):
+        self.last_nmea_time = time.time()
+
+    def _on_rtcm_msg(self):
+        self.last_rtcm_time = time.time()
+
+    def _update_indicators(self):
+        now = time.time()
+        selected = self.device_var.get()
+
+        # 1. IMU Status (applicable to both devices)
+        if now - self.last_imu_time < 2.0:
+            self.imu_status_label.config(text='ACTIVE', foreground='#a6e3a1')
+            self.imu_dot.config(bg='#a6e3a1')
+        else:
+            self.imu_status_label.config(text='INACTIVE', foreground='#f38ba8')
+            self.imu_dot.config(bg='#f38ba8')
+
+        # 2. NMEA and RTCM Stream Status (GQ7 only)
+        if selected == '3DM-GQ7 (RTK)':
+            if now - self.last_nmea_time < 2.0:
+                self.nmea_status_label.config(text='ACTIVE', foreground='#a6e3a1')
+                self.nmea_dot.config(bg='#a6e3a1')
+            else:
+                self.nmea_status_label.config(text='INACTIVE', foreground='#f38ba8')
+                self.nmea_dot.config(bg='#f38ba8')
+
+            if now - self.last_rtcm_time < 3.0:
+                self.rtcm_status_label.config(text='ACTIVE', foreground='#a6e3a1')
+                self.rtcm_dot.config(bg='#a6e3a1')
+            else:
+                self.rtcm_status_label.config(text='INACTIVE', foreground='#f38ba8')
+                self.rtcm_dot.config(bg='#f38ba8')
+        else:
+            # Hide/Gray out NMEA and RTCM details for GX5
+            self.nmea_status_label.config(text='N/A', foreground='#7f849c')
+            self.nmea_dot.config(bg='#313244')
+            self.rtcm_status_label.config(text='N/A', foreground='#7f849c')
+            self.rtcm_dot.config(bg='#313244')
+
+        self.after(500, self._update_indicators)
+
+    def _run_ros2_monitor(self):
+        try:
+            import rclpy
+            from rclpy.node import Node
+
+            # Import messages dynamically to prevent imports failure if not in workspace
+            try:
+                from sensor_msgs.msg import Imu
+            except ImportError:
+                Imu = None
+
+            try:
+                from microstrain_inertial_msgs.msg import Nmea
+            except ImportError:
+                Nmea = None
+
+            try:
+                from rtcm_msgs.msg import Rtcm
+            except ImportError:
+                Rtcm = None
+
+            if not rclpy.ok():
+                rclpy.init()
+
+            class TopicMonitor(Node):
+
+                def __init__(self, on_imu, on_nmea, on_rtcm):
+                    super().__init__('gui_topic_monitor')
+                    if Imu is not None:
+                        self.create_subscription(
+                            Imu, '/imu/data',
+                            lambda msg: on_imu(), 10
+                        )
+                    if Nmea is not None:
+                        self.create_subscription(
+                            Nmea, '/nmea',
+                            lambda msg: on_nmea(), 10
+                        )
+                    if Rtcm is not None:
+                        self.create_subscription(
+                            Rtcm, '/rtcm',
+                            lambda msg: on_rtcm(), 10
+                        )
+
+            node = TopicMonitor(
+                self._on_imu_msg,
+                self._on_nmea_msg,
+                self._on_rtcm_msg
+            )
+            rclpy.spin(node)
+        except Exception as e:
+            print(f'Failed to run ROS 2 monitor: {e}')
 
     def _load_settings(self):
         try:
@@ -364,6 +516,12 @@ class NTRIPConfigurator(tk.Tk):
 
     def _on_close(self):
         self._stop_launch()
+        try:
+            import rclpy
+            if rclpy.ok():
+                rclpy.shutdown()
+        except Exception:
+            pass
         self.destroy()
 
 
