@@ -1,41 +1,75 @@
 # 3DM-GQ7-GNSS/INS RTK ROS 2 Configuration
 
-This repository contains the custom ROS 2 configuration package (`microstrain_rtk_config`) to orchestrate centimeter-level RTK updates for the **MicroStrain 3DM-GQ7-GNSS/INS** IMU.
+This repository contains the custom ROS 2 configuration package (`microstrain_rtk_config`) designed to orchestrate centimeter-level RTK updates for the **MicroStrain 3DM-GQ7-GNSS/INS** IMU.
 
-It launchs the official `microstrain_inertial_driver` and `ntrip_client` nodes in harmony, handling:
+It runs the official `microstrain_inertial_driver` and `ntrip_client` nodes in harmony, handling:
 * Auxiliary port RTCM corrections input.
 * NMEA GGA sentence feedback back to the NTRIP caster for Virtual Reference Station (VRS) support.
 
-## Package Structure
+---
 
-* `config/microstrain.yml`: Driver parameters tailored for GQ7 serial ports, RTK interface, and NMEA outputs.
-* `config/ntrip_client.yml`: Connection parameters template for your NTRIP correction service.
-* `launch/rtk_launch.py`: Unified launch description starting both nodes.
+## Repository Structure
 
-## Instructions for Use
+* **`config/microstrain.yml`**: Driver parameters tailored for GQ7 serial ports, RTK interface, and NMEA outputs.
+* **`config/ntrip_client.yml`**: Connection parameters template for your NTRIP correction service.
+* **`launch/rtk_launch.py`**: Unified ROS 2 Python launch description starting both nodes.
+* **`scripts/start_rtk.sh`**: Bash script wrapper configuring dependencies and launching the nodes.
+
+---
+
+## Getting Started
 
 ### Step 1: Configure your NTRIP Caster Details
-Open `config/ntrip_client.yml` and fill in your RTK base station/correction network details:
+Open `config/ntrip_client.yml` and fill in your actual RTK base station/correction network details:
 * `host`: The IP/Domain of your NTRIP service (e.g. `rtk2go.com` or a local/state network).
 * `port`: The port (typically `2101`).
 * `mountpoint`: The name of the RTK mountpoint.
 * `username` and `password`.
 
-### Step 2: Source and Launch
-Source your ROS 2 workspace and run the unified launch file:
+---
+
+## Running the Driver & RTK Client
+
+You can start the nodes using either the **Script Interface** (which automatically handles environment dependencies) or the native **ROS 2 Launch Interface**.
+
+### Option A: Script Interface (Recommended)
+We provide a bash wrapper script that configures the workspace sourcing, path mappings for custom dependencies (such as local `GeographicLib` builds), and launches the system cleanly:
+
 ```bash
+# Execute the start script directly from the package
+./src/microstrain_rtk_config/scripts/start_rtk.sh
+```
+
+### Option B: ROS 2 Launch Python Interface
+If you want to run it natively via `ros2 launch`, make sure to export any local dependency paths first, then run the launch file:
+
+```bash
+# Export the local GeographicLib paths (if not installed globally)
+export CMAKE_PREFIX_PATH="/home/artwalk/local/usr/share/cmake/geographiclib:/home/artwalk/local/usr:${CMAKE_PREFIX_PATH}"
+export LD_LIBRARY_PATH="/home/artwalk/local/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+
+# Source the environments
 source /opt/ros/jazzy/setup.bash
-source <path_to_your_workspace>/install/setup.bash
+source install/setup.bash
+
+# Run the python launch description
 ros2 launch microstrain_rtk_config rtk_launch.py
 ```
 
-### Step 3: Verify RTK Correction Status
-You can verify if the RTK correction is active and receiving updates by echoing the correction status topic:
+---
+
+## Verification
+
+### 1. Verify RTK Correction Stream Status
+You can verify if the RTK correction is active and successfully receiving data by echoing the correction status topic:
 ```bash
 ros2 topic echo /mip/gnss_corrections/rtk_corrections_status
 ```
-You should see fields indicating the connection status, correction age, and correction type.
-Additionally, you can monitor the GPS fix quality (which should go to "RTK Fixed" or status `4`/`5` depending on format) on:
+Look for positive connection indicator flags, low correction age (typically `< 2s`), and RTCM message reception.
+
+### 2. Verify GPS Fix Quality
+To check if the navigation filter has achieved centimeter-level accuracy ("RTK Fixed"):
 ```bash
 ros2 topic echo /mip/gnss1/fix
 ```
+Verify that the status indicates an RTK fix state (typically status value `4` or `5` depending on your message definition).
