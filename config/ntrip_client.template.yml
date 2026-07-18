@@ -20,4 +20,4 @@ ntrip_client:
     # Reconnection behavior
     reconnect_attempt_max: 10
     reconnect_attempt_wait_seconds: 5
-    rtcm_timeout_seconds: 4
+    rtcm_timeout_seconds: 30
