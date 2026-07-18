@@ -93,8 +93,8 @@ class NTRIPConfigurator(tk.Tk):
         self.last_rtcm_time = 0.0
 
         self.title('MicroStrain Driver Settings')
-        self.geometry('830x720')
-        self.minsize(750, 620)
+        self.geometry('1060x720')
+        self.minsize(940, 620)
 
         # Style configurations
         self.style = ttk.Style()
@@ -167,7 +167,7 @@ class NTRIPConfigurator(tk.Tk):
         self.device_combo = ttk.Combobox(
             main_frame, textvariable=self.device_var,
             values=['3DM-GQ7 (RTK)', '3DM-GX5-25 (IMU)'],
-            state='readonly', width=40, exportselection=False
+            state='readonly', width=58, exportselection=False
         )
         self.device_combo.grid(row=1, column=1, sticky='ew', pady=(0, 10), padx=(10, 0))
         self.device_combo.bind('<<ComboboxSelected>>', self._on_device_changed)
@@ -180,7 +180,7 @@ class NTRIPConfigurator(tk.Tk):
         self.rate_combo = ttk.Combobox(
             main_frame, textvariable=self.rate_var,
             values=['10', '50', '100', '200', '500'],
-            state='readonly', width=40, exportselection=False
+            state='readonly', width=58, exportselection=False
         )
         self.rate_combo.grid(row=2, column=1, sticky='ew', pady=(0, 15), padx=(10, 0))
         self.rate_combo.bind('<<ComboboxSelected>>', self._on_rate_changed)
@@ -200,7 +200,7 @@ class NTRIPConfigurator(tk.Tk):
             label.grid(row=idx+3, column=0, sticky='w', pady=5)
 
             show_char = '*' if key == 'password' else ''
-            entry = ttk.Entry(main_frame, show=show_char, width=42)
+            entry = ttk.Entry(main_frame, show=show_char, width=60)
             entry.grid(row=idx+3, column=1, sticky='ew', pady=5, padx=(10, 0))
             self.entries[key] = entry
 
