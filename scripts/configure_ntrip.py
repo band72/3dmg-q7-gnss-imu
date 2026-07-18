@@ -193,7 +193,7 @@ class NTRIPConfigurator(tk.Tk):
         self.destroy()
 
 if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = os.path.dirname(os.path.realpath(__file__))
     
     # Resolve absolute paths
     config_file = os.path.join(script_dir, "..", "config", "ntrip_client.yml")
