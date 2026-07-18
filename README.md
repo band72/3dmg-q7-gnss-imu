@@ -17,6 +17,46 @@ It runs the official `microstrain_inertial_driver` and `ntrip_client` nodes in h
 
 ---
 
+## Workspace Setup & Installation
+
+To use this configuration, you need a ROS 2 workspace with the official MicroStrain driver and NTRIP client packages built alongside it.
+
+### Step 1: Create a ROS 2 Workspace (if you don't have one)
+```bash
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+```
+
+### Step 2: Clone the Required Driver Repositories
+Clone the official packages to your workspace:
+```bash
+# Clone official microstrain driver (must be recursive for submodules!)
+git clone --recursive -b ros2 https://github.com/LORD-MicroStrain/microstrain_inertial.git
+
+# Clone official ntrip client
+git clone -b ros2 https://github.com/LORD-MicroStrain/ntrip_client.git
+
+# Clone this configuration repository
+git clone https://github.com/band72/3dmg-q7-gnss-imu.git microstrain_rtk_config
+```
+
+### Step 3: Install Dependencies
+Ensure you have the required geodetic package installed on your system:
+```bash
+sudo apt-get update
+sudo apt-get install -y libgeographiclib-dev
+```
+*(If you do not have root/sudo privileges, download and extract `libgeographiclib-dev` and `libgeographiclib26` deb packages locally to `~/local` as mapped in `scripts/start_rtk.sh`).*
+
+### Step 4: Build the Workspace
+```bash
+cd ~/ros2_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+```
+
+---
+
 ## Getting Started
 
 ### Step 1: Configure your NTRIP Caster Details
