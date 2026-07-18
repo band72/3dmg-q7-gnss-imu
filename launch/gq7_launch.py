@@ -1,10 +1,11 @@
 import os
-import yaml
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
+
 from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import OpaqueFunction
+from launch_ros.actions import Node
+import yaml
+
 
 def launch_setup(context, *args, **kwargs):
     # Retrieve configuration paths
@@ -40,18 +41,21 @@ def launch_setup(context, *args, **kwargs):
         driver_overrides = yaml.safe_load(f)
 
     # Merge overrides into default parameters
-    # The driver node expects the parameter dict under the namespace node name
     driver_params_dict = {}
     if 'microstrain_inertial_driver' in driver_params:
-        driver_params_dict.update(driver_params['microstrain_inertial_driver']['ros__parameters'])
+        driver_params_dict.update(
+            driver_params['microstrain_inertial_driver']['ros__parameters']
+        )
     if 'microstrain_inertial_driver' in driver_overrides:
-        driver_params_dict.update(driver_overrides['microstrain_inertial_driver']['ros__parameters'])
+        driver_params_dict.update(
+            driver_overrides['microstrain_inertial_driver']['ros__parameters']
+        )
 
     # Nodes definition
     driver_node = Node(
         package='microstrain_inertial_driver',
         executable='microstrain_inertial_driver_node',
-        name='microstrain_inertial_driver',
+        name='gq7_driver',
         output='screen',
         parameters=[driver_params_dict]
     )
@@ -69,6 +73,7 @@ def launch_setup(context, *args, **kwargs):
         nodes_to_launch.append(ntrip_node)
 
     return nodes_to_launch
+
 
 def generate_launch_description():
     return LaunchDescription([

@@ -2,7 +2,6 @@
 
 # Resolve the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/../../.." &>/dev/null && pwd)"
 
 echo "========================================="
 echo " Starting MicroStrain GQ7 RTK ROS 2 Node "
@@ -21,15 +20,27 @@ fi
 export CMAKE_PREFIX_PATH="/home/artwalk/local/usr/share/cmake/geographiclib:/home/artwalk/local/usr:${CMAKE_PREFIX_PATH}"
 export LD_LIBRARY_PATH="/home/artwalk/local/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 
-# 3. Source local colcon workspace
-if [ -f "${WORKSPACE_DIR}/install/setup.bash" ]; then
-    echo "Sourcing local workspace..."
-    source "${WORKSPACE_DIR}/install/setup.bash"
+# 3. Locate and source local colcon workspace
+WS_DIR=""
+if [ -f "${SCRIPT_DIR}/install/setup.bash" ]; then
+    WS_DIR="${SCRIPT_DIR}"
+elif [ -f "${SCRIPT_DIR}/../../../install/setup.bash" ]; then
+    WS_DIR="$(cd "${SCRIPT_DIR}/../../.." &>/dev/null && pwd)"
+elif [ -f "${SCRIPT_DIR}/../../../../install/setup.bash" ]; then
+    WS_DIR="$(cd "${SCRIPT_DIR}/../../../.." &>/dev/null && pwd)"
+fi
+
+if [ -n "${WS_DIR}" ]; then
+    echo "Sourcing local workspace from ${WS_DIR}..."
+    source "${WS_DIR}/install/setup.bash"
 else
-    echo "ERROR: Workspace build files not found at ${WORKSPACE_DIR}/install/setup.bash. Run 'colcon build' first." >&2
+    echo "ERROR: Workspace build files (install/setup.bash) not found. Run 'colcon build' first." >&2
     exit 1
 fi
 
-# 4. Launch the unified RTK system
+# 4. Configure FastDDS to disable shared memory transport (avoiding multi-user permission issues)
+export FASTRTPS_DEFAULT_PROFILES_FILE="${WS_DIR}/fastdds_no_shm.xml"
+
+# 5. Launch the unified RTK system
 echo "Running launch file..."
-ros2 launch microstrain_rtk_config rtk_launch.py
+ros2 launch microstrain_rtk_config gq7_launch.py

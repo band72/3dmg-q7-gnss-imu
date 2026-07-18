@@ -1,21 +1,13 @@
 microstrain_inertial_driver:
   ros__parameters:
-    # Port configurations
-    # It is recommended to use the UDEV symlinks created by the driver install:
-    # /dev/microstrain_main -> Main communication port (IMU/GNSS data, configuration)
-    # /dev/microstrain_aux  -> Auxiliary communication port (RTCM inputs, NMEA outputs)
-    port: "/dev/microstrain_main"
+    aux_baudrate: 921600
+    aux_port: /dev/microstrain_aux
     baudrate: 115200
-    set_baud: false
-    aux_port: "/dev/microstrain_aux"
-    aux_baudrate: 115200
-
-    # RTK and NTRIP interface configurations
-    rtk_dongle_enable: true       # Enables RTK status publishing
-    ntrip_interface_enable: true   # Subscribes to /rtcm and sends corrections to aux_port
-
-    # NMEA Sentence configuration
-    # Required for VRS (Virtual Reference Station) casters that need position feedback.
-    nmea_message_config: true
+    gnss1_nmea_gga_data_rate: 1
     gnss1_nmea_talker_id: 1
-    gnss1_nmea_gga_data_rate: 1   # Output GGA sentence at 1 Hz on the aux port /nmea topic
+    imu_data_rate: 200
+    nmea_message_config: true
+    ntrip_interface_enable: true
+    port: /dev/microstrain_main
+    rtk_dongle_enable: true
+    set_baud: false

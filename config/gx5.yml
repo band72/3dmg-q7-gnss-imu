@@ -1,0 +1,13 @@
+microstrain_inertial_driver:
+  ros__parameters:
+    baudrate: 115200
+    imu_data_rate: 200
+    imu_data_raw_rate: 0
+    imu_mag_data_rate: 50
+    imu_pressure_data_rate: 0
+    nmea_message_config: false
+    ntrip_interface_enable: false
+    port: /dev/microstrain_main_6253.114065
+    rtk_dongle_enable: false
+    set_baud: false
+    tf_mode: 0

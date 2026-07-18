@@ -1,54 +1,68 @@
-# 3DM-GQ7-GNSS/INS RTK ROS 2 Configuration
+# MicroStrain ROS 2 Driver Configurations (`3dmg-q7-gnss-imu`)
 
-This repository contains the custom ROS 2 configuration package (`microstrain_rtk_config`) designed to orchestrate centimeter-level RTK updates for the **MicroStrain 3DM-GQ7-GNSS/INS** IMU.
-
-It runs the official `microstrain_inertial_driver` and `ntrip_client` nodes in harmony, handling:
-* Auxiliary port RTCM corrections input.
-* NMEA GGA sentence feedback back to the NTRIP caster for Virtual Reference Station (VRS) support.
+This repository provides production-ready ROS 2 configuration templates, startup scripts, and a graphical desktop configurator to manage and launch MicroStrain sensors on **ROS 2 Jazzy**:
+1. **3DM-GQ7-GNSS/INS**: Centimeter-level RTK positioning using Lord MicroStrain's `ntrip_client` integration.
+2. **3DM-GX5-25**: High-frequency IMU/AHRS data streams.
 
 ---
 
-## Repository Structure
+## Hardware Setup & Serial Ports
 
-* **`config/microstrain.yml`**: Driver parameters tailored for GQ7 serial ports, RTK interface, and NMEA outputs.
-* **`config/ntrip_client.yml`**: Connection parameters template for your NTRIP correction service.
-* **`launch/rtk_launch.py`**: Unified ROS 2 Python launch description starting both nodes.
-* **`scripts/start_rtk.sh`**: Bash script wrapper configuring dependencies and launching the nodes.
+The devices communicate over USB serial interfaces. For predictable port mappings, it is recommended to use the UDEV rules provided by the official driver:
+
+* **3DM-GQ7**: Requires two connections:
+  * **Main Port** (`/dev/microstrain_main`): For IMU, GNSS, EKF state, and configurations.
+  * **Aux Port** (`/dev/microstrain_aux`): Used specifically to feed the incoming RTCM corrections to the RTK receiver and source NMEA sentences.
+* **3DM-GX5-25**: Requires a single connection:
+  * **Main Port** (`/dev/microstrain_main_<serial>`): For IMU and magnetometer data.
 
 ---
 
-## Workspace Setup & Installation
+## Directory Structure
 
-To use this configuration, you need a ROS 2 workspace with the official MicroStrain driver and NTRIP client packages built alongside it.
-
-### Step 1: Create a ROS 2 Workspace (if you don't have one)
-```bash
-mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
+```
+.
+├── CMakeLists.txt
+├── package.xml
+├── README.md
+├── config/
+│   ├── microstrain.yml         # GQ7 driver parameters override
+│   ├── gx5.yml                 # GX5-25 driver parameters override
+│   ├── ntrip_client.yml        # NTRIP caster settings (ignored in git)
+│   └── ntrip_client.template.yml # NTRIP caster settings template
+├── launch/
+│   ├── gq7_launch.py           # Launch GQ7 driver and ntrip client nodes
+│   └── gx5_launch.py           # Launch GX5-25 driver node
+├── scripts/
+│   ├── configure_ntrip.py      # Tkinter desktop configuration GUI
+│   ├── start_gq7.sh            # Dynamic launch script for GQ7
+│   └── start_gx5.sh            # Dynamic launch script for GX5-25
+└── test/
+    └── test_configure_ntrip.py # Pytest unit testing suite
 ```
 
-### Step 2: Clone the Required Driver Repositories
-Clone the official packages to your workspace:
-```bash
-# Clone official microstrain driver (must be recursive for submodules!)
-git clone --recursive -b ros2 https://github.com/LORD-MicroStrain/microstrain_inertial.git
+---
 
-# Clone official ntrip client
-git clone -b ros2 https://github.com/LORD-MicroStrain/ntrip_client.git
+## Installation & Build Guide
 
-# Clone this configuration repository
-git clone https://github.com/band72/3dmg-q7-gnss-imu.git microstrain_rtk_config
-```
-
-### Step 3: Install Dependencies
-Ensure you have the required geodetic package installed on your system:
+### Prerequisites
+Make sure you have a working ROS 2 Jazzy workspace. Install the required geodetic package:
 ```bash
 sudo apt-get update
 sudo apt-get install -y libgeographiclib-dev
 ```
-*(If you do not have root/sudo privileges, download and extract `libgeographiclib-dev` and `libgeographiclib26` deb packages locally to `~/local` as mapped in `scripts/start_rtk.sh`).*
+*(If you do not have root privileges, download GeographicLib deb packages and extract them locally to `~/local`).*
 
-### Step 4: Build the Workspace
+### Step 1: Clone Repositories
+Clone the required LORD MicroStrain packages and this configuration repo into your workspace:
+```bash
+cd ~/ros2_ws/src
+git clone --recursive -b ros2 https://github.com/LORD-MicroStrain/microstrain_inertial.git
+git clone -b ros2 https://github.com/LORD-MicroStrain/ntrip_client.git
+git clone https://github.com/band72/3dmg-q7-gnss-imu.git microstrain_rtk_config
+```
+
+### Step 2: Build the Workspace
 ```bash
 cd ~/ros2_ws
 source /opt/ros/jazzy/setup.bash
@@ -57,74 +71,87 @@ colcon build --symlink-install
 
 ---
 
-## Getting Started
+## How to Use
 
-### Step 1: Configure your NTRIP Caster Details
-For security, `config/ntrip_client.yml` contains local credentials and is **ignored by Git** (via `.gitignore`). 
+For convenience, symbolic links to the GUI and startup scripts are created in the workspace root (`~/ros2_ws/`) upon package compilation.
 
-If you are cloning this repository on a new machine, first copy the template file:
+### Option A: Desktop GUI Configurator (Recommended)
+Launch the graphical interface directly from the workspace root:
 ```bash
-cp config/ntrip_client.template.yml config/ntrip_client.yml
-```
-Then open `config/ntrip_client.yml` and fill in your actual RTK correction network details:
-* `host`: The IP/Domain of your NTRIP service (e.g. `rtk2go.com` or a local/state network).
-* `port`: The port (typically `2101`).
-* `mountpoint`: The name of the RTK mountpoint.
-* `username` and `password`.
-
----
-
-## Running the Driver & RTK Client
-
-You can start and configure the nodes using a **Graphical GUI**, a **Bash Script**, or native **ROS 2 CLI commands**.
-
-### Option A: Graphical User Interface (GUI) (Recommended)
-We provide an interactive Tkinter-based desktop interface to read, edit, and write the NTRIP caster parameters directly into your configuration. It also features buttons to start and stop the ROS 2 launch process and displays execution logs in real-time.
-
-To run the GUI:
-```bash
-# Execute the GUI configurator from your workspace root
 ./configure_ntrip.py
 ```
+* **Device Selection Dropdown**: Switch between `3DM-GQ7 (RTK)` and `3DM-GX5-25 (IMU)`.
+* **Dynamic Form Fields**: When `3DM-GX5-25` is selected, all NTRIP connection inputs are automatically disabled and grayed out.
+* **IMU Rate Selector (Hz)**: Select frequency (`10`, `50`, `100`, `200`, or `500` Hz) for the IMU orientation and raw sensor data.
+* **Auto-Save & Hot Reset**: Modifying the IMU frequency instantly saves the configuration to the device's parameters file. If the driver node is currently running, the GUI automatically triggers a hot reset (stops and restarts the driver) to apply the new rate.
 
-### Option B: Script Interface
-We provide a bash wrapper script that configures the workspace sourcing, path mappings for custom dependencies (such as local `GeographicLib` builds), and launches the system cleanly:
-
-```bash
-# Execute the start script directly from the package
-./src/microstrain_rtk_config/scripts/start_rtk.sh
-```
-
-### Option C: Native ROS 2 Launch Interface
-If you want to run it natively via `ros2 launch`, make sure to export any local dependency paths first, then run the launch file:
-
-```bash
-# Export the local GeographicLib paths (if not installed globally)
-export CMAKE_PREFIX_PATH="/home/artwalk/local/usr/share/cmake/geographiclib:/home/artwalk/local/usr:${CMAKE_PREFIX_PATH}"
-export LD_LIBRARY_PATH="/home/artwalk/local/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-
-# Source the environments
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-
-# Run the python launch description
-ros2 launch microstrain_rtk_config rtk_launch.py
-```
+### Option B: Script Launch (Headless)
+Run the dynamic wrapper scripts from the workspace root:
+* **Launch GQ7**:
+  ```bash
+  ./start_gq7.sh
+  ```
+* **Launch GX5-25**:
+  ```bash
+  ./start_gx5.sh
+  ```
 
 ---
 
-## Verification
+## ROS 2 Topics & Output Verification
 
-### 1. Verify RTK Correction Stream Status
-You can verify if the RTK correction is active and successfully receiving data by echoing the correction status topic:
+Before inspecting the topic outputs, configure your environment to use the FastDDS loopback transport to bypass shared memory permissions issues:
 ```bash
-ros2 topic echo /mip/gnss_corrections/rtk_corrections_status
+export FASTRTPS_DEFAULT_PROFILES_FILE=/home/artwalk/ros2_ws/fastdds_no_shm.xml
 ```
-Look for positive connection indicator flags, low correction age (typically `< 2s`), and RTCM message reception.
 
-### 2. Verify GPS Fix Quality
-To check if the navigation filter has achieved centimeter-level accuracy ("RTK Fixed"):
+### 1. Verify GQ7 RTK Corrections Feed
+* Echo `/rtcm` to verify the NTRIP caster binary RTCM stream:
+  ```bash
+  ros2 topic echo --once /rtcm
+  ```
+* Echo `/nmea` to verify the NMEA GGA feedback stream to the VRS caster:
+  ```bash
+  ros2 topic echo --once /nmea
+  ```
+
+### 2. Verify GX5-25 IMU Output
+* Echo `/imu/data` to inspect raw and orientation estimations:
+  ```bash
+  ros2 topic echo --once /imu/data
+  ```
+* Echo `/imu/mag` to check active magnetometer outputs:
+  ```bash
+  ros2 topic echo --once /imu/mag
+  ```
+
+---
+
+## FastDDS Shared Memory Configuration (UDP Loopback)
+To avoid Shared Memory permissions warnings (e.g., `Failed init_port fastrtps_port7002`) common in multi-user or containerized setups, we force FastDDS to use UDP loopback instead.
+* Profile location: `/home/artwalk/ros2_ws/fastdds_no_shm.xml`
+* The startup scripts automatically export the environment variable `FASTRTPS_DEFAULT_PROFILES_FILE` pointing to this XML profile before launching the nodes.
+
+---
+
+## Unit Testing & Code Styling Quality
+We use `pytest` for functional parameter validations, and standard ROS 2 linters for code quality verification.
+
+### Run Tests:
 ```bash
-ros2 topic echo /mip/gnss1/fix
+source /opt/ros/jazzy/setup.bash
+colcon test --packages-select microstrain_rtk_config --event-handlers console_cohesion+
 ```
-Verify that the status indicates an RTK fix state (typically status value `4` or `5` depending on your message definition).
+The suite verifies **100% success** across 5 test suites:
+* Pytest functional testing (`test_configure_ntrip.py`)
+* Python formatting compliance (`flake8`)
+* Python docstrings standard compliance (`pep257`)
+* XML package format validation (`xmllint`)
+* CMake build script structure validation (`lint_cmake`)
+
+---
+
+## Credential Security
+To prevent sensitive NTRIP CORS caster credentials (hostnames, usernames, passwords) from being pushed to public git repos:
+* `config/ntrip_client.yml` is added to `.gitignore`.
+* A template configuration file [config/ntrip_client.template.yml](config/ntrip_client.template.yml) is tracked in Git with placeholder values.
