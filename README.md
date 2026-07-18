@@ -30,9 +30,18 @@ Open `config/ntrip_client.yml` and fill in your actual RTK base station/correcti
 
 ## Running the Driver & RTK Client
 
-You can start the nodes using either the **Script Interface** (which automatically handles environment dependencies) or the native **ROS 2 Launch Interface**.
+You can start and configure the nodes using a **Graphical GUI**, a **Bash Script**, or native **ROS 2 CLI commands**.
 
-### Option A: Script Interface (Recommended)
+### Option A: Graphical User Interface (GUI) (Recommended)
+We provide an interactive Tkinter-based desktop interface to read, edit, and write the NTRIP caster parameters directly into your configuration. It also features buttons to start and stop the ROS 2 launch process and displays execution logs in real-time.
+
+To run the GUI:
+```bash
+# Execute the GUI configurator from your workspace root
+./configure_ntrip.py
+```
+
+### Option B: Script Interface
 We provide a bash wrapper script that configures the workspace sourcing, path mappings for custom dependencies (such as local `GeographicLib` builds), and launches the system cleanly:
 
 ```bash
@@ -40,7 +49,7 @@ We provide a bash wrapper script that configures the workspace sourcing, path ma
 ./src/microstrain_rtk_config/scripts/start_rtk.sh
 ```
 
-### Option B: ROS 2 Launch Python Interface
+### Option C: Native ROS 2 Launch Interface
 If you want to run it natively via `ros2 launch`, make sure to export any local dependency paths first, then run the launch file:
 
 ```bash
