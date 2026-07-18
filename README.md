@@ -4,7 +4,10 @@ This repository provides production-ready ROS 2 configuration templates, startup
 1. **3DM-GQ7-GNSS/INS**: Centimeter-level RTK positioning using Lord MicroStrain's `ntrip_client` integration.
 2. **3DM-GX5-25**: High-frequency IMU/AHRS data streams.
 
+![GUI Configurator Interface Mockup](gui_mockup.png)
+
 ---
+
 
 ## Hardware Setup & Serial Ports
 
