@@ -56,15 +56,19 @@ def launch_setup(context, *args, **kwargs):
         parameters=[driver_params_dict]
     )
 
-    ntrip_node = Node(
-        package='ntrip_client',
-        executable='ntrip_ros.py',
-        name='ntrip_client',
-        output='screen',
-        parameters=[ntrip_params_path]
-    )
+    # Decide whether to launch the NTRIP client node based on configuration
+    nodes_to_launch = [driver_node]
+    if driver_params_dict.get('ntrip_interface_enable', False):
+        ntrip_node = Node(
+            package='ntrip_client',
+            executable='ntrip_ros.py',
+            name='ntrip_client',
+            output='screen',
+            parameters=[ntrip_params_path]
+        )
+        nodes_to_launch.append(ntrip_node)
 
-    return [driver_node, ntrip_node]
+    return nodes_to_launch
 
 def generate_launch_description():
     return LaunchDescription([
