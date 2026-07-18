@@ -20,7 +20,13 @@ It runs the official `microstrain_inertial_driver` and `ntrip_client` nodes in h
 ## Getting Started
 
 ### Step 1: Configure your NTRIP Caster Details
-Open `config/ntrip_client.yml` and fill in your actual RTK base station/correction network details:
+For security, `config/ntrip_client.yml` contains local credentials and is **ignored by Git** (via `.gitignore`). 
+
+If you are cloning this repository on a new machine, first copy the template file:
+```bash
+cp config/ntrip_client.template.yml config/ntrip_client.yml
+```
+Then open `config/ntrip_client.yml` and fill in your actual RTK correction network details:
 * `host`: The IP/Domain of your NTRIP service (e.g. `rtk2go.com` or a local/state network).
 * `port`: The port (typically `2101`).
 * `mountpoint`: The name of the RTK mountpoint.
