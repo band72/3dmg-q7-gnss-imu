@@ -3,7 +3,7 @@ ntrip_client:
     # Connection parameters for your NTRIP Caster / Correction Service
     # (Replace these placeholders with your actual NTRIP settings)
     host: "rtk2go.com"
-    port: "2101"
+    port: 2101
     mountpoint: "YOUR_MOUNTPOINT"
     authenticate: true
     username: "YOUR_USERNAME"
