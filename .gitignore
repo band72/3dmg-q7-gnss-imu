@@ -1,0 +1,2 @@
+# Ignore sensitive configuration files containing credentials
+config/ntrip_client.yml

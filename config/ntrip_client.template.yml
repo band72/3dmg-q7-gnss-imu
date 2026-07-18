@@ -10,7 +10,6 @@ ntrip_client:
     password: "YOUR_PASSWORD"
 
     # Message configurations
-    # "rtcm_msgs" is standard and pre-installed on this system
     rtcm_message_package: "rtcm_msgs"
     rtcm_frame_id: "odom"
 
